@@ -1,0 +1,62 @@
+{% load static %}
+{% comment %} {% load compress %} {% endcomment %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>MCL - {% block title %}{% endblock title %}</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Dashboard" name="keywords">
+    <meta content="Dashboard" name="description">
+
+    <!-- Favicon -->
+    <link href="{% static '/project_res/img/MCLLogo.png' %}" rel="icon">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+ 
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="{% static 'project_res/css/MCL-style.css' %}" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!-- Leaflet -->
+    <!-- <link href="{% static 'project_res/library/basemap-icon/leaflet-iconlayer/iconLayers.css' %}" rel="stylesheet"> -->
+   
+    <!-- <link href="{% static 'project_res\library\leaflet-iconlayers-0.2.0\package\dist\iconLayers.css' %}" rel="stylesheet"> -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+</head>
+
+<body>
+    {% block content %}
+    {% endblock content %}
+
+    
+    <script type="text/javascript" src="{% static 'project_res/js/MCL.js' %}"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- JQuery -->
+    <script type="text/javascript" src="{% static 'project_res/library/jquery/jquery-3.4.1.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'project_res/library/bootstrap/bootstrap.bundle.min.js' %}"></script>
+      
+    <script type="text/javascript" src="{% static 'project_res/library/bootstrap/bootstrap.bundle.min.js' %}"></script>
+
+    <!-- Bootstrap JS (for Carousel) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+     <!-- Leaflet -->
+    <!-- <script type="text/javascript" src="{% static 'project_res/library/basemap-icon/leaflet-iconlayer/iconLayers.js' %}"></script> -->
+    <!-- <script type="text/javascript" src="{% static 'project_res\library\leaflet-iconlayers-0.2.0\package\dist\iconLayers.js' %}"></script> -->
+
+</body>
+
+</html>

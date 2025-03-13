@@ -1,0 +1,23 @@
+/* .login-container {
+    background: rgb(39, 129, 129);
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+} */
+
+#login-background {
+    /* background: #278181; */
+    background-color: #0093e9;
+    background-image: linear-gradient(160deg, #4B5945 0%, #91AC8F 100%);
+    min-height: 100vh;
+  }
+  
+  .login-form {
+    border: 1px solid #000;
+  }
+
+  .login-bg{
+    background-image: linear-gradient(160deg, #4B5945 0%, #91AC8F 100%);
+  }

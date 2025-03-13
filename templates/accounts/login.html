@@ -1,0 +1,61 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+{% block title %}Login{% endblock title %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div id="login-background" class="row h-100 align-items-center justify-content-center">
+    <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-4 rounded">
+      <div class="login-bg rounded p-4 p-sm-4 my-3 mx-3 shadow">
+        <div class="d-flex align-items-center justify-content-between mb-3">       
+          <img src="{% static '/project_res/img/MCLLogo.png' %}" height="60px" style="display: block; margin: auto;" class="login-logo" />
+        </div>
+              {% if message %}
+                {% comment %} <p>If you have not created an account yet, then please
+                <a href="/accounts/signup/?next=%2F">sign up</a> first.</p> {% endcomment %}
+                <p class="text-danger">{{message}}</p>
+              {% endif %}
+
+              <form class="login" method="POST" action="/login/">
+                {% csrf_token %}
+                {% if next %}
+                  <input type="hidden" name="next" value="{{ next }}" />
+                {% endif %}
+                  <p class="form-floating mb-3"><input type="text" class="form-control" name="username" placeholder="Username" autocomplete="email" required="" id="id_login">
+                  <label for="id_login">Username:</label></p>
+
+  
+                  <p class="form-floating mb-3"><input type="password" class="form-control" name="password" placeholder="Password" autocomplete="current-password" required="" id="id_password">
+                  <label for="id_password">Password:</label></p>
+  
+                  <p class="form-check mb-2"><input type="checkbox" class="form-check-input" id="show_password" onclick="togglePW()">
+                  <label for="show_password" class="form-check-label">Show Password</label></p>
+  
+                {% comment %} <p class="form-check mb-2"><input type="checkbox" class="form-check-input" name="remember" id="id_remember">
+                <label for="id_remember" class="form-check-label">Remember Me:</label></p> {% endcomment %}
+  
+                {% comment %} <a class="button secondaryAction" href="/accounts/password/reset/">Forgot Password?</a> {% endcomment %}
+                <button class="primaryAction btn btn-success py-3 w-100 mb-4" type="submit" style="background-color: #00a0e3;">Log In</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+{% endblock content %}
+
+
+{% block script %}
+  <script>
+    function togglePW() {
+      var x = document.getElementById("id_password");
+      if (x.type === "password") {
+        x.type = "text";
+      } else {
+        x.type = "password";
+      }
+    }
+    </script>
+{% endblock script %}

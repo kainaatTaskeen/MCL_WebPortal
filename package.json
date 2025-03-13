@@ -1,0 +1,23 @@
+{
+  "name": "wasa",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack --watch --mode development",
+    "build": "webpack --watch --mode production"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack": "^5.97.1",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.6",
+    "leaflet": "^1.9.4",
+    "leaflet-iconlayers": "^0.2.0",
+    "ol": "^8.1.0"
+  },
+  "description": ""
+}
