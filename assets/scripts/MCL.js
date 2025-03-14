@@ -32,22 +32,86 @@ var baseMaps = {
 
 L.control.layers(baseMaps, {}, { position: "bottomleft" }).addTo(map);
 
-// ------------------------------ Fetch WFS Layer with Error Handling -------------------------------------
-function fetchWFSLayer(layerName, addToMap = true) {
+
+// ------------------------------ Create Panes -------------------------------------
+map.createPane("zonesPane");
+map.createPane("streetsPane");
+map.createPane("ucPane");
+
+// Set pane orders (lower values mean layers render below higher ones)
+map.getPane("zonesPane").style.zIndex = 300;
+map.getPane("streetsPane").style.zIndex = 500;
+map.getPane("ucPane").style.zIndex = 450;
+
+// ------------------------------ Layer Styles -------------------------------------
+const layerStyles = {
+    ucBoundary: {
+        pane: "ucPane",
+        color: "#808080",
+        weight: 0.5,
+        opacity: 1,
+        fillColor: "transparent",
+        fillOpacity: 0
+    },
+};
+
+function getStreetColorByZone(zoneName) {
+    const colors = {
+        "Aziz Bhatti Zone": "#DC143C", "Samanabad": "#8A2BE2",
+        "Gulberg Zone": "#FFD700", "Nishter Zone": "#1E90FF",
+        "Allama Iqbal Zone": "#FF4500", "DGBT Zone": "#DA70D6",
+        "Ravi Zone": "#20B2AA", "Shalimar": "#D2691E",
+        "Wagha Town": "#32CD32"
+    };
+    return colors[zoneName] || "#ff7800";
+}
+
+let streetsStyle = function (feature) {
+    return {
+        pane: "streetsPane",
+        color: getStreetColorByZone(feature.properties?.zone_name),
+        weight: 2,
+        opacity: 1
+    };
+};
+
+function getZoneFillColor(zoneName) {
+    const colors = {
+        "Aziz Bhatti Zone": "#c5f6c8", "Samanabad Zone": "#e0efd2",
+        "Gulberg Zone": "#eeb4fd", "Nishtar Zone": "#f3f3c5",
+        "Allama Iqbal Zone": "#ded5f7", "Gunj Buksh Zone": "#b2b2fe",
+        "Ravi Zone": "#bfebf5", "Shalamar Zone": "#f6ddca",
+        "Wagha Town": "#f7d6d9"
+    };
+    return colors[zoneName] || "#ffffff";
+}
+
+let zoneStyle = function (feature) {
+    return {
+        pane: "zonesPane",
+        color: 'darkred',
+        fillColor: getZoneFillColor(feature.properties?.name),
+        weight: 1.2,
+        fillOpacity: 0.9
+    };
+};
+
+// ------------------------------ Fetch WFS Layer with Styling -------------------------------------
+function fetchWFSLayer(layerName, style, addToMap = true) {
     const url = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.1.0` +
         `&request=GetFeature&typeName=${encodeURIComponent(layerName)}` +
         `&outputFormat=application/json&srsname=EPSG:4326`;
 
     return fetch(url)
-        .then(response => response.text()) // Get response as text
+        .then(response => response.text())
         .then(text => {
             try {
-                const json = JSON.parse(text); // Try parsing JSON
+                const json = JSON.parse(text);
                 if (!json.features || json.features.length === 0) {
                     console.warn(`⚠️ No features found for ${layerName}`);
                     return null;
                 }
-                const layer = L.geoJSON(json); // No inline styling, use GeoServer styles
+                const layer = L.geoJSON(json, { style: style });
                 if (addToMap) {
                     layer.addTo(map);
                 }
@@ -60,18 +124,19 @@ function fetchWFSLayer(layerName, addToMap = true) {
         .catch(error => console.error(`❌ Fetch error for ${layerName}:`, error));
 }
 
-// ✅ Fetch WFS Layers
+// ✅ Fetch WFS Layers with Styling
 const layers = {};
 const layerNames = {
+    zoneBoundary: "mcl:zone_boundary",
     streetsLayer: "mcl:Streets",
     ucBoundary: "mcl:uc_boundary",
-    zoneBoundary: "mcl:zone_boundary"
+    
 };
-
+// ✅ Fetch WFS Layers with Updated Streets Styling
 Promise.all([
-    fetchWFSLayer(layerNames.streetsLayer).then(layer => layers.streetsLayer = layer),
-    fetchWFSLayer(layerNames.ucBoundary).then(layer => layers.ucBoundary = layer),
-    fetchWFSLayer(layerNames.zoneBoundary).then(layer => layers.zoneBoundary = layer)
+    fetchWFSLayer(layerNames.streetsLayer, streetsStyle).then(layer => layers.streetsLayer = layer),
+    fetchWFSLayer(layerNames.ucBoundary, layerStyles.ucBoundary).then(layer => layers.ucBoundary = layer),
+    fetchWFSLayer(layerNames.zoneBoundary, zoneStyle).then(layer => layers.zoneBoundary = layer)
 ]).then(() => {
     console.log("✅ All layers loaded successfully!");
 
@@ -80,7 +145,6 @@ Promise.all([
     if (layers.ucBoundary) addLayerControl(layers.ucBoundary, "UC Boundary");
     if (layers.zoneBoundary) addLayerControl(layers.zoneBoundary, "Zones Boundary");
 });
-
 
 // ----------------------------------------- Layer Control -------------------------------------
 const layerControl = L.control({ position: "topleft" });
@@ -139,13 +203,14 @@ function addLayerControl(layer, name, defaultOpacity = 1) {
 
         // Prevent map from dragging when interacting with the slider
         L.DomEvent.disableClickPropagation(opacitySlider);
+        L.DomEvent.disableClickPropagation(layerItem);
         L.DomEvent.on(opacitySlider, "mousedown", () => map.dragging.disable());
         L.DomEvent.on(opacitySlider, "mouseup", () => map.dragging.enable());
 
         // Apply Opacity
         opacitySlider.addEventListener("input", function () {
             if (layer.setStyle) {
-                layer.setStyle({ opacity: this.value, fillOpacity: this.value * 0.7 });
+                layer.setStyle({ opacity: this.value, fillOpacity: this.value * 0.9 });
             }
         });
 

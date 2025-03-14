@@ -438,3 +438,14 @@ input:checked + .slider:before {
     align-items: center;
     justify-content: center;
 }
+
+
+.zone-label {
+    font-size: 14px;
+    font-weight: bold;
+    color: black;
+    background: white;
+    border: 1px solid black;
+    padding: 2px;
+    z-index: 1000;
+}
