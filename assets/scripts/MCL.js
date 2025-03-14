@@ -1,5 +1,6 @@
 import L from 'leaflet';
-// ------------------------------Add MAP-------------------------------------
+
+// ------------------------------ Add MAP -------------------------------------
 const map = L.map('map', { attributionControl: false }).setView([31.4839, 74.3587], 11);
 
 // Remove default zoom control from the top-right
@@ -8,78 +9,94 @@ map.zoomControl.remove();
 // Re-add zoom control in the top-left corner
 L.control.zoom({ position: "topright" }).addTo(map);
 
+// ------------------------------ Add OpenStreetMap base layer -------------------------------------
+var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+});
+var googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    attribution: '&copy; Google Satellite'
+});
+var esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; Esri'
+});
 
-// ------------------------------Add OpenStreetMap base layer-------------------------------------
-//.............................basemaps...........................
-        // Define multiple basemaps
-        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
-        });
+// Set default basemap
+osm.addTo(map);
 
-        var googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            attribution: '&copy; Google Satellite'
-        });
+// Add basemaps to the layer control
+var baseMaps = {
+    "OpenStreetMap": osm,
+    "Google Satellite": googleSat,
+    "Esri World Imagery": esriWorldImagery
+};
 
-        var esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; Esri'
-        });
+L.control.layers(baseMaps, {}, { position: "bottomleft" }).addTo(map);
 
-        // Set default basemap
-        osm.addTo(map);
+// ------------------------------ Fetch WFS Layer with Error Handling -------------------------------------
+function fetchWFSLayer(layerName, addToMap = true) {
+    const url = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.1.0` +
+        `&request=GetFeature&typeName=${encodeURIComponent(layerName)}` +
+        `&outputFormat=application/json&srsname=EPSG:4326`;
 
-        // Add basemaps to the layer control
-        var baseMaps = {
-            "OpenStreetMap": osm,
-            "Google Satellite": googleSat,
-            "Esri World Imagery": esriWorldImagery
-        };
+    return fetch(url)
+        .then(response => response.text()) // Get response as text
+        .then(text => {
+            try {
+                const json = JSON.parse(text); // Try parsing JSON
+                if (!json.features || json.features.length === 0) {
+                    console.warn(`⚠️ No features found for ${layerName}`);
+                    return null;
+                }
+                const layer = L.geoJSON(json); // No inline styling, use GeoServer styles
+                if (addToMap) {
+                    layer.addTo(map);
+                }
+                return layer;
+            } catch (error) {
+                console.error(`❌ Error parsing WFS response for ${layerName}:`, text);
+                return null;
+            }
+        })
+        .catch(error => console.error(`❌ Fetch error for ${layerName}:`, error));
+}
 
-        L.control.layers(baseMaps, {}, { position: "bottomleft" }).addTo(map);
-        
+// ✅ Fetch WFS Layers
+const layers = {};
+const layerNames = {
+    streetsLayer: "mcl:Streets",
+    ucBoundary: "mcl:uc_boundary",
+    zoneBoundary: "mcl:zone_boundary"
+};
 
-// Add GeoServer WMS Layers
-const pakistanBoundary = L.tileLayer.wms("http://localhost:8080/geoserver/wms", {
-    layers: 'mcl:pakistan_boundary',
-    format: 'image/png',
-    transparent: true
-}).setZIndex(10);
+Promise.all([
+    fetchWFSLayer(layerNames.streetsLayer).then(layer => layers.streetsLayer = layer),
+    fetchWFSLayer(layerNames.ucBoundary).then(layer => layers.ucBoundary = layer),
+    fetchWFSLayer(layerNames.zoneBoundary).then(layer => layers.zoneBoundary = layer)
+]).then(() => {
+    console.log("✅ All layers loaded successfully!");
 
-const zoneBoundary = L.tileLayer.wms("http://localhost:8080/geoserver/wms", {
-    layers: 'mcl:zone_boundary',
-    format: 'image/png',
-    transparent: true
-}).addTo(map).setZIndex(10).addTo(map);
-
-const ucBoundary = L.tileLayer.wms("http://localhost:8080/geoserver/wms", {
-    layers: 'mcl:uc_boundary',
-    format: 'image/png',
-    transparent: true
-}).setZIndex(10);
-
-const streetsLayer = L.tileLayer.wms("http://localhost:8080/geoserver/wms", {
-    layers: 'mcl:Streets',
-    format: 'image/png',
-    transparent: true
-}).setZIndex(10);
+    // Add layers to the control in the required order
+    if (layers.streetsLayer) addLayerControl(layers.streetsLayer, "Streets");
+    if (layers.ucBoundary) addLayerControl(layers.ucBoundary, "UC Boundary");
+    if (layers.zoneBoundary) addLayerControl(layers.zoneBoundary, "Zones Boundary");
+});
 
 
-
-//----------------------------------------- Layer Control for toggling layers------------------------------
-/// Custom Layer Control UI
+// ----------------------------------------- Layer Control -------------------------------------
 const layerControl = L.control({ position: "topleft" });
 
-layerControl.onAdd = function (map) {
+layerControl.onAdd = function () {
     const div = L.DomUtil.create("div", "custom-layer-control");
     div.innerHTML = `<h4 style="text-align:start; padding-left:7px">LAYERS</h4><div id="layer-list"></div>`;
     return div;
 };
-
 layerControl.addTo(map);
 
 // Function to Add Layer Controls
 function addLayerControl(layer, name, defaultOpacity = 1) {
-    const layerList = document.getElementById("layer-list");
+    if (!layer) return;
 
+    const layerList = document.getElementById("layer-list");
     if (layerList) {
         const layerItem = document.createElement("div");
         layerItem.classList.add("layer-item");
@@ -122,18 +139,12 @@ function addLayerControl(layer, name, defaultOpacity = 1) {
 
         // Prevent map from dragging when interacting with the slider
         L.DomEvent.disableClickPropagation(opacitySlider);
-        L.DomEvent.on(opacitySlider, "mousedown", function () {
-            map.dragging.disable();
-        });
-        L.DomEvent.on(opacitySlider, "mouseup", function () {
-            map.dragging.enable();
-        });
+        L.DomEvent.on(opacitySlider, "mousedown", () => map.dragging.disable());
+        L.DomEvent.on(opacitySlider, "mouseup", () => map.dragging.enable());
 
         // Apply Opacity
         opacitySlider.addEventListener("input", function () {
-            if (layer.setOpacity) {
-                layer.setOpacity(this.value);
-            } else if (layer.setStyle) {
+            if (layer.setStyle) {
                 layer.setStyle({ opacity: this.value, fillOpacity: this.value * 0.7 });
             }
         });
@@ -146,44 +157,33 @@ function addLayerControl(layer, name, defaultOpacity = 1) {
     }
 }
 
-// ✅ Add Layers to Control Panel
-addLayerControl(streetsLayer, "Streets");
-addLayerControl(ucBoundary, "UC Boundary");
-addLayerControl(zoneBoundary, "Zone Boundary");
-addLayerControl(pakistanBoundary, "Pakistan Boundary");
-
-
 // ----------------------------------------Change cursor on load-------------------------------------
 map.getContainer().style.cursor = "default"; 
 
-let highlightedStreet = null; // Keep track of highlighted feature
-
-// ----------------------------------Function to check if a street exists at the hovered location------------------------------
+// ------------------- Optimized Street Hover Feature Check -------------------
 map.on('mousemove', function (e) {
-    const url = `http://localhost:8080/geoserver/wms?service=WMS&version=1.1.1&request=GetFeatureInfo
-        &layers=mcl:Streets
-        &query_layers=mcl:Streets
-        &bbox=${map.getBounds().toBBoxString()}
-        &srs=EPSG:4326
-        &info_format=application/json
-        &width=${map.getSize().x}
-        &height=${map.getSize().y}
-        &x=${Math.floor(map.latLngToContainerPoint(e.latlng).x)}
-        &y=${Math.floor(map.latLngToContainerPoint(e.latlng).y)}`;
+    const { lat, lng } = e.latlng;
+    const url = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.1.0` +
+        `&request=GetFeature&typeName=mcl:Streets&outputFormat=application/json` +
+        `&srsname=EPSG:4326&CQL_FILTER=DWITHIN(geom, POINT(${lng} ${lat}), 0.0001, meters)`;
 
     fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.features && data.features.length > 0) {
-                map.getContainer().style.cursor = "pointer"; // Street found, show pointer
-            } else {
-                map.getContainer().style.cursor = "default"; // No street, default cursor
+        .then(response => response.text())
+        .then(text => {
+            try {
+                const json = JSON.parse(text);
+                map.getContainer().style.cursor = (json.features && json.features.length > 0) ? "pointer" : "default";
+            } catch (error) {
+                console.error("❌ Error fetching street info:", text);
             }
         })
-        .catch(error => console.error("Error fetching street info:", error));
+        .catch(error => console.error("❌ Fetch error:", error));
 });
 
+
 // ------------------------------On Map Click-------------------------------------
+let highlightedStreet = null; // Declare the variable globally
+
 map.on("click", function (e) {
     const url = `http://localhost:8080/geoserver/wms?service=WMS&version=1.1.1&request=GetFeatureInfo&layers=mcl:Streets
         &query_layers=mcl:Streets&bbox=${map.getBounds().toBBoxString()}&srs=EPSG:4326&info_format=application/json
